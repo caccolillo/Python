@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-#exit if a command fails
-set -e
-
-#call python script
-PYTHON_SCRIPT=`basename $0`.py
-exec python3 `dirname $0`"/$PYTHON_SCRIPT" "$@"
