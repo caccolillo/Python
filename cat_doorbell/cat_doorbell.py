@@ -1,0 +1,69 @@
+
+# import the libraries
+import cv2
+import numpy as np
+  
+  
+# define a video capture object
+vid = cv2.VideoCapture(0)
+first_frame_motion = None  
+
+while(True):
+      
+    # Capture the video frame
+    # by frame
+    ret, frame = vid.read()
+  
+    # Display the resulting frame
+    cv2.imshow('frame', frame)
+      
+    # convert the image to grayscale format
+    img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cv2.imshow('grayscale', img_gray)
+
+
+
+    #histogram equalization
+    gray_img_eqhist=cv2.equalizeHist(img_gray)
+    cv2.imshow('grayscale histogram equalized', gray_img_eqhist)
+
+    #denoise grayscale
+    ddenoised = cv2.fastNlMeansDenoising(gray_img_eqhist,  None, 3, 4, 2)
+    cv2.imshow('grayscale denoised', ddenoised)
+
+    #gaussian blurring
+    blur = cv2.GaussianBlur(ddenoised,(5,5),0)
+    cv2.imshow('grayscale blurred', blur)
+
+    #Otsu thresholding
+    ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    cv2.imshow('thresholded', th3)
+    #edge detection
+    edgedet = cv2.Canny(image=blur, threshold1=120, threshold2=200) # Combined X and Y Sobel Edge Detection
+    cv2.imshow('edge detected', edgedet)
+
+    #find the intersection of edge detected and binarized
+    img_bwa = cv2.bitwise_and(th3,edgedet)
+    cv2.imshow('intersection ', img_bwa)
+
+    #erosion
+    kernel = np.ones((3,3),np.uint8)
+    erosion = cv2.dilate(img_bwa,kernel,iterations = 1)   
+    cv2.imshow('eroded intersection ', erosion)
+
+    # image detection with CNN tutorial
+    # https://pyimagesearch.com/2020/06/22/turning-any-cnn-image-classifier-into-an-object-detector-with-keras-tensorflow-and-opencv/
+
+    #motion detection
+    #https://www.life2coding.com/opencv-simple-motion-detection/
+
+    # the 'q' button is set as the
+    # quitting button you may use any
+    # desired button of your choice
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+  
+# After the loop release the cap object
+vid.release()
+# Destroy all the windows
+cv2.destroyAllWindows()
