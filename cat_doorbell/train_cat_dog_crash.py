@@ -142,9 +142,9 @@ model = make_model(input_shape=image_size + (3,), num_classes=2)
 #keras.utils.plot_model(model, show_shapes=True)
 
 
-#epochs = 20
-epochs = 10
 
+#epochs = 10
+epochs = 10
 callbacks = [
     keras.callbacks.ModelCheckpoint("save_at_{epoch}.keras"),
 ]
@@ -171,8 +171,8 @@ score = float(predictions[0])
 print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
 
 # save trained weights
-WEIGHTS_FINAL = 'model-resnet50-final.h5'
-net_final.save(WEIGHTS_FINAL)
+WEIGHTS_FINAL = 'model_final.h5'
+model.save(WEIGHTS_FINAL)
 
 
 
