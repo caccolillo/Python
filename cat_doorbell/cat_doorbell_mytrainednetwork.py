@@ -102,6 +102,9 @@ def img_averaging(vid):
 
 def image_detection(image,min_conf):
   stepSize = 100 #stride (10)
+  locs = np.array([0,0,0,0,0])
+  entry = np.array([0,0,0,0,0])
+  first_det = True
   (w_width, w_height) = (150, 200) # search window size
   for x in range(0, image.shape[1] - w_width , stepSize):
      for y in range(0, image.shape[0] - w_height, stepSize):
@@ -110,16 +113,16 @@ def image_detection(image,min_conf):
         cv2.waitKey(1)
         time.sleep(0.12)
         tmp = image.copy()
-        cv2.rectangle(tmp, (x, y), (x + w_width, y + w_height), (255, 0, 0), 2) # draw rectangle on image
-        cv2.imshow('scan window' , np.array(tmp, dtype = np.uint8 ) )
-        cv2.waitKey(1) 
+        #cv2.rectangle(tmp, (x, y), (x + w_width, y + w_height), (255, 0, 0), 2) # draw rectangle on image
+        #cv2.imshow('scan window' , np.array(tmp, dtype = np.uint8 ) )
+        #cv2.waitKey(1) 
         time.sleep(0.12)
         #classify with resnet50
         image_resnet50 = cv2.resize(window, (180, 180)) #resize in the format expected by resnet50
         image_resnet50 = img_to_array(image_resnet50) #convert to numpy array
-        cv2.imshow('scan window resnet' , np.array(image_resnet50, dtype = np.uint8 ) )
-        cv2.waitKey(1) 
-        time.sleep(0.12) 
+        #cv2.imshow('scan window resnet' , np.array(image_resnet50, dtype = np.uint8 ) )
+        #cv2.waitKey(1) 
+        #time.sleep(0.12) 
  
         image_resnet50 = np.expand_dims(image_resnet50, axis=0) #adds a dimension to the image
         preds = model.predict(image_resnet50)[0] #predicts the ROI by using resnet50
@@ -128,158 +131,54 @@ def image_detection(image,min_conf):
         #print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
         prob_cat = 1 - score
         prob_dog = score
-        #preds = imagenet_utils.decode_predictions(preds, top=1)
-        locs = []
+
         # filter out weak detections by ensuring the predicted probability
         # is greater than the minimum probability
         if prob_cat >= min_conf:
-            # grab the bounding box associated with the prediction and
-            # convert the coordinates
-            locs.append((x, y, x + w_width, y + w_height))
-            print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
-            time.sleep(5.5)
-        # # loop over the predictions
-        # for (i, p) in enumerate(preds):
-        #     # grab the prediction information for the current ROI
-        #     (imagenetID, label, prob) = p[0]
-        #     # filter out weak detections by ensuring the predicted probability
-        #     # is greater than the minimum probability
-        #     if prob >= min_conf:
-        #         # grab the bounding box associated with the prediction and
-        #         # convert the coordinates
-        #         locs.append((x, y, x + w_width, y + w_height))
-        #         box = locs[i]
-        #         # grab the list of predictions for the label and add the
-        #         # bounding box and probability to the list
-        #         L = labels.get(label, [])
-        #         L.append((box, prob))
-        #         labels[label] = L
+            entry = [x, y, x + w_width, y + w_height, prob_cat]
+            locs = np.vstack((locs,entry))
+            #if first_det:
+            #  locs = [x, y, x + w_width, y + w_height, prob_cat]
+            #  first_det = False
+            #else:
+            #  entry = [x, y, x + w_width, y + w_height, prob_cat]
+            #  np.vstack((locs,entry))
+            #print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
+            #print(locs)
   return locs
   
-
-
-# def image_detection(orig,min_conf):
-
-#   # resize the image such that it has the
-#   # has the supplied width, and then grab its dimensions
-#   orig = imutils.resize(orig, width=WIDTH)
-#   (H, W) = orig.shape[:2]
-
-#   # initialize the image pyramid
-#   pyramid = image_pyramid(orig, scale=PYR_SCALE, minSize=ROI_SIZE)
-
-#   # initialize two lists, one to hold the ROIs generated from the image
-#   # pyramid and sliding window, and another list used to store the
-#   # (x, y)-coordinates of where the ROI was in the original image
-#   rois = []
-#   locs = []
-#   # time how long it takes to loop over the image pyramid layers and
-#   # sliding window locations
-#   start = time.time()
-
-#   # loop over the image pyramid
-#   for image in pyramid:
-#       # determine the scale factor between the *original* image
-#       # dimensions and the *current* layer of the pyramid
-#       scale = W / float(image.shape[1])
-#       # for each layer of the image pyramid, loop over the sliding
-#       # window locations
-#       for (x, y, roiOrig) in sliding_window(image, WIN_STEP, ROI_SIZE):
-#           # scale the (x, y)-coordinates of the ROI with respect to the
-#           # *original* image dimensions
-#           x = int(x * scale)
-#           y = int(y * scale)
-#           w = int(ROI_SIZE[0] * scale)
-#           h = int(ROI_SIZE[1] * scale)
-#           # take the ROI and preprocess it so we can later classify
-#           # the region using Keras/TensorFlow
-#           roi = cv2.resize(roiOrig, INPUT_SIZE)
-#           # Display the resulting frame
-#           cv2.imshow(' roi orig', roiOrig)
-
-#           cv2.imshow(' roi ', roi)
-#           time.sleep(0.5)
-#           roi = img_to_array(roi)
-#           roi = preprocess_input(roi)
-#           # update our list of ROIs and associated coordinates
-#           rois.append(roi)
-#           locs.append((x, y, x + w, y + h))
-#           # check to see if we are visualizing each of the sliding
-#           # windows in the image pyramid
-#           # clone the original image and then draw a bounding box
-#           # surrounding the current region
-#           clone = orig.copy()
-#           cv2.rectangle(clone, (x, y), (x + w, y + h),(0, 255, 0), 2)
-	
-#   # show how long it took to loop over the image pyramid layers and
-#   # sliding window locations
-#   end = time.time()
-#   print("[INFO] looping over pyramid/windows took {:.5f} seconds".format(end - start))
-#   # convert the ROIs to a NumPy array
-#   rois = np.array(rois, dtype="float32")
-#   # classify each of the proposal ROIs using ResNet and then show how
-#   # long the classifications took
-#   print("[INFO] classifying ROIs...")
-#   start = time.time()
-#   preds = model.predict(rois)
-#   end = time.time()
-#   print("[INFO] classifying ROIs took {:.5f} seconds".format(end - start))
-#   # decode the predictions and initialize a dictionary which maps class
-#   # labels (keys) to any ROIs associated with that label (values)
-#   preds = imagenet_utils.decode_predictions(preds, top=1)
-#   labels = {}
-#   # loop over the predictions
-#   for (i, p) in enumerate(preds):
-#       # grab the prediction information for the current ROI
-#       (imagenetID, label, prob) = p[0]
-#       # filter out weak detections by ensuring the predicted probability
-#       # is greater than the minimum probability
-#       if prob >= min_conf:
-#           # grab the bounding box associated with the prediction and
-#           # convert the coordinates
-#           box = locs[i]
-#           # grab the list of predictions for the label and add the
-#           # bounding box and probability to the list
-#           L = labels.get(label, [])
-#           L.append((box, prob))
-#           labels[label] = L
-#       # loop over the labels for each of detected objects in the image
-#   for label in labels.keys():
-#       # clone the original image so that we can draw on it
-#       print("[INFO] showing results for '{}'".format(label))
-#       clone = orig.copy()
-#       # loop over all bounding boxes for the current label
-#       for (box, prob) in labels[label]:
-#           # draw the bounding box on the image
-#           (startX, startY, endX, endY) = box
-#           cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
-#       # show the results *before* applying non-maxima suppression, then
-#       # clone the image again so we can display the results *after*
-#       # applying non-maxima suppression
-#       clone = orig.copy()
-#       # extract the bounding boxes and associated prediction
-#       # probabilities, then apply non-maxima suppression
-#       boxes = np.array([p[0] for p in labels[label]])
-#       proba = np.array([p[1] for p in labels[label]])
-#       boxes = non_max_suppression(boxes, proba)
-#       # loop over all bounding boxes that were kept after applying
-#       # non-maxima suppression
-#       for (startX, startY, endX, endY) in boxes:
-#           # draw the bounding box and label on the image
-#           cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
-#           y = startY - 10 if startY - 10 > 10 else startY + 10
-#           cv2.putText(clone, label, (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
-#   return clone
-
-
-
-
-
-
-
-
-
-
+def draw_bounding_box(image,locs):
+    entry = np.array([0,0,0,0,0])
+    #print(len(locs.shape))
+    #print(locs.ndim)
+    if(sum(locs.shape)>5):
+      clone = image.copy()
+      # extract the bounding boxes and associated prediction
+      # probabilities, then apply non-maxima suppression
+      boxes = locs[:,[0,1,2,3]]
+      boxes = boxes.astype(int)
+      proba = locs[:,4]
+      boxes = non_max_suppression(boxes, proba)
+      print(boxes)
+      # loop over all bounding boxes that were kept after applying
+      # non-maxima suppression
+      i=0
+      for (startX, startY, endX, endY) in boxes:
+        if(startX!=0 and startY!=0 and endX!=0 and endY!=0):
+          # draw the bounding box and label on the image
+          cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
+          y = startY - 10 if startY - 10 > 10 else startY + 10
+          cv2.putText(clone, 'cat', (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+      return clone
+    else:
+      if(locs[4]>0.0):
+        boxes = locs[0:3]
+        boxes = boxes.astype(int)
+        (startX, startY, endX, endY)=boxes
+        cv2.rectangle(image, (startX, startY), (endX, endY),(0, 255, 0), 2)
+        y = startY - 10 if startY - 10 > 10 else startY + 10
+        cv2.putText(image, 'cat', (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)        
+      return image
 
 #main function
 # define a video capture object
@@ -312,6 +211,8 @@ while(True):
     cv2.imshow(' frame ', frame)
       
     avg = img_averaging(vid)
+    avg_clone = avg.copy()
+
     cv2.imshow(' averaged ', avg)
 
 
@@ -320,8 +221,12 @@ while(True):
     #cv2.imshow(' blurred  ', blur)
     # image detection with CNN tutorial
     # https://pyimagesearch.com/2020/06/22/turning-any-cnn-image-classifier-into-an-object-detector-with-keras-tensorflow-and-opencv/
-    detected = image_detection(avg,min_conf)
+    detected = image_detection(avg_clone,min_conf)
     print(detected)
+
+    detected_image=draw_bounding_box(avg,detected)
+    cv2.imshow(' detected ', detected_image)
+   
     #cv2.imshow(' detected  ', detected)
     #motion detection
     #https://www.life2coding.com/opencv-simple-motion-detection/
