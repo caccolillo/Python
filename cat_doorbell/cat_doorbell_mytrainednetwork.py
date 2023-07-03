@@ -100,8 +100,8 @@ def img_averaging(vid):
     return average_frameint
 
 
-def image_detection(image,min_conf):
-  stepSize = 100 #stride (10)
+def image_detection(image,min_conf,stepSize):
+  #stepSize = 100 #stride (10)
   locs = np.array([0,0,0,0,0])
   entry = np.array([0,0,0,0,0])
   first_det = True
@@ -164,7 +164,7 @@ def draw_bounding_box(image,locs):
       # non-maxima suppression
       i=0
       for (startX, startY, endX, endY) in boxes:
-        if(startX!=0 and startY!=0 and endX!=0 and endY!=0):
+        if(not(startX==0 and startY==0 and endX==0 and endY==0)):
           # draw the bounding box and label on the image
           cv2.rectangle(clone, (startX, startY), (endX, endY),(0, 255, 0), 2)
           y = startY - 10 if startY - 10 > 10 else startY + 10
@@ -188,7 +188,7 @@ vid = cv2.VideoCapture(0)
 # initialize variables used for the object detection procedure
 WIDTH = 800
 PYR_SCALE = 1.5
-WIN_STEP = 50
+stepSize = 50 #stride (10)
 ROI_SIZE = (200,200)
 INPUT_SIZE = (224, 224)
 min_conf = 0.97 #minimum confidence level
@@ -221,7 +221,7 @@ while(True):
     #cv2.imshow(' blurred  ', blur)
     # image detection with CNN tutorial
     # https://pyimagesearch.com/2020/06/22/turning-any-cnn-image-classifier-into-an-object-detector-with-keras-tensorflow-and-opencv/
-    detected = image_detection(avg_clone,min_conf)
+    detected = image_detection(avg_clone,min_conf,stepSize)
     print(detected)
 
     detected_image=draw_bounding_box(avg,detected)
