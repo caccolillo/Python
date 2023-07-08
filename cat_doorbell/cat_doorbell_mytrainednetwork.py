@@ -41,43 +41,66 @@ def image_pyramid(image, scale=1.5, minSize=(224, 224)):
         # yield the next image in the pyramid
         yield image
 
+# #image pre-processing function  
+# def preprocessing(frame):
+#    # convert the image to grayscale format
+#     img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     #cv2.imshow('grayscale', img_gray)
+
+#     #histogram equalization
+#     gray_img_eqhist=cv2.equalizeHist(img_gray)
+#     #cv2.imshow('grayscale histogram equalized', gray_img_eqhist)
+
+#     #denoise grayscale
+#     ddenoised = cv2.fastNlMeansDenoising(gray_img_eqhist,  None, 3, 4, 2)
+#     #cv2.imshow('grayscale denoised', ddenoised)
+
+#     #gaussian blurring
+#     blur = cv2.GaussianBlur(ddenoised,(5,5),0)
+#     #cv2.imshow('grayscale blurred', blur)
+
+#     #Otsu thresholding
+#     ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+#     #cv2.imshow('thresholded', th3)
+    
+#     #edge detection
+#     edgedet = cv2.Canny(image=blur, threshold1=120, threshold2=200) # Combined X and Y Sobel Edge Detection
+#     #cv2.imshow('edge detected', edgedet)
+
+#     #find the intersection of edge detected and binarized
+#     img_bwa = cv2.bitwise_and(th3,edgedet)
+#     #cv2.imshow('intersection ', img_bwa)
+
+#     #erosion
+#     kernel = np.ones((3,3),np.uint8)
+#     erosion = cv2.dilate(img_bwa,kernel,iterations = 1)   
+#     #cv2.imshow('eroded intersection ', erosion)
+
+#     #returns 
+#     return erosion, blur
+
+
 #image pre-processing function  
 def preprocessing(frame):
-   # convert the image to grayscale format
-    img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #cv2.imshow('grayscale', img_gray)
+  tmp = frame.copy()
+  #illumination correction using CLAHE
+  img = cv2.cvtColor(tmp, cv2.COLOR_RGB2Lab)
+  #configure CLAHE
+  clahe = cv2.createCLAHE(clipLimit=10,tileGridSize=(8,8))
+  #0 to 'L' channel, 1 to 'a' channel, and 2 to 'b' channel
+  img[:,:,0] = clahe.apply(img[:,:,0])
+  img = cv2.cvtColor(img, cv2.COLOR_Lab2RGB)
+  cv2.imshow("CLAHE", img)
+  #cv2.waitKey(0)
+  #cv2.destroyAllWindows()
+  #image denoising 
+  tmp2 = frame.copy()
+  noiseless_image_colored = cv2.fastNlMeansDenoisingColored(tmp2,None,20,20,7,21) 
+  cv2.imshow("Denoised", img)
+  #cv2.waitKey(0)
+  #cv2.destroyAllWindows() 
 
-    #histogram equalization
-    gray_img_eqhist=cv2.equalizeHist(img_gray)
-    #cv2.imshow('grayscale histogram equalized', gray_img_eqhist)
-
-    #denoise grayscale
-    ddenoised = cv2.fastNlMeansDenoising(gray_img_eqhist,  None, 3, 4, 2)
-    #cv2.imshow('grayscale denoised', ddenoised)
-
-    #gaussian blurring
-    blur = cv2.GaussianBlur(ddenoised,(5,5),0)
-    #cv2.imshow('grayscale blurred', blur)
-
-    #Otsu thresholding
-    ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    #cv2.imshow('thresholded', th3)
-    
-    #edge detection
-    edgedet = cv2.Canny(image=blur, threshold1=120, threshold2=200) # Combined X and Y Sobel Edge Detection
-    #cv2.imshow('edge detected', edgedet)
-
-    #find the intersection of edge detected and binarized
-    img_bwa = cv2.bitwise_and(th3,edgedet)
-    #cv2.imshow('intersection ', img_bwa)
-
-    #erosion
-    kernel = np.ones((3,3),np.uint8)
-    erosion = cv2.dilate(img_bwa,kernel,iterations = 1)   
-    #cv2.imshow('eroded intersection ', erosion)
-
-    #returns 
-    return erosion, blur
+  return noiseless_image_colored
 
 #frame averaging
 def img_averaging(vid):
@@ -137,14 +160,6 @@ def image_detection(image,min_conf,stepSize):
         if prob_cat >= min_conf:
             entry = [x, y, x + w_width, y + w_height, prob_cat]
             locs = np.vstack((locs,entry))
-            #if first_det:
-            #  locs = [x, y, x + w_width, y + w_height, prob_cat]
-            #  first_det = False
-            #else:
-            #  entry = [x, y, x + w_width, y + w_height, prob_cat]
-            #  np.vstack((locs,entry))
-            #print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
-            #print(locs)
   return locs
   
 def draw_bounding_box(image,locs):
@@ -216,12 +231,12 @@ while(True):
     cv2.imshow(' averaged ', avg)
 
 
-    erosion, blur = preprocessing(avg)
+    prep = preprocessing(avg)
     #cv2.imshow(' eroded intersection ', erosion)
     #cv2.imshow(' blurred  ', blur)
     # image detection with CNN tutorial
     # https://pyimagesearch.com/2020/06/22/turning-any-cnn-image-classifier-into-an-object-detector-with-keras-tensorflow-and-opencv/
-    detected = image_detection(avg_clone,min_conf,stepSize)
+    detected = image_detection(prep,min_conf,stepSize)
     print(detected)
 
     detected_image=draw_bounding_box(avg,detected)
